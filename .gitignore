@@ -1,0 +1,16 @@
+# Variables con claves y contrasenas reales
+.env
+.env.*
+!.env.example
+
+# Repositorio frontend separado. Esta carpeta se clona aqui para Docker.
+/Tienda-SCAMusic-main/
+
+# Dependencias y generados
+**/node_modules/
+**/dist/
+**/target/
+*.log
+.idea/
+.vscode/
+.DS_Store

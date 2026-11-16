@@ -1,0 +1,240 @@
+# SCAMusica — React + 10 microservicios + Gateway + Eureka + MySQL.
+# Ejecutar desde esta carpeta, con .env generado por iniciar.ps1:
+#   docker compose up --build -d
+name: scamusica
+
+x-java: &java
+  image: scamusica-backend:local
+  restart: unless-stopped
+  networks: [scamusica]
+  healthcheck:
+    test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:$${SERVER_PORT}/v3/api-docs || exit 1"]
+    interval: 10s
+    timeout: 8s
+    retries: 18
+    start_period: 100s
+
+x-java-env: &java-env
+  EUREKA_URL: http://eureka-server:8761/eureka/
+  EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+  JWT_SECRET: ${JWT_SECRET:?Falta JWT_SECRET en .env; usa iniciar.ps1}
+  INTERNAL_KEY: ${INTERNAL_KEY:?Falta INTERNAL_KEY en .env; usa iniciar.ps1}
+  JAVA_TOOL_OPTIONS: -Xms64m -Xmx256m -XX:+UseSerialGC
+
+x-java-db-env: &java-db-env
+  <<: *java-env
+  DB_USER: ${DB_USER:-scamusica}
+  DB_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD en .env; usa iniciar.ps1}
+
+x-java-depends: &java-depends
+  mysql:
+    condition: service_healthy
+  eureka-server:
+    condition: service_healthy
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Falta MYSQL_ROOT_PASSWORD en .env; usa iniciar.ps1}
+      MYSQL_DATABASE: db_usuario
+      MYSQL_USER: ${DB_USER:-scamusica}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD en .env; usa iniciar.ps1}
+    ports:
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./musica-parent/docs/bd-general.sql:/docker-entrypoint-initdb.d/01-bases.sql:ro
+      - ./docker/mysql/02-permisos.sh:/docker-entrypoint-initdb.d/02-permisos.sh:ro
+    networks: [scamusica]
+    healthcheck:
+      test: ["CMD-SHELL", "mysql --user=root --password=\"$${MYSQL_ROOT_PASSWORD}\" --execute='SELECT 1' --silent > /dev/null 2>&1"]
+      interval: 5s
+      timeout: 8s
+      retries: 30
+      start_period: 35s
+
+  eureka-server:
+    image: scamusica-backend:local
+    build:
+      context: ./musica-parent
+      dockerfile: Dockerfile
+    command: ["java", "-jar", "/app/eureka-server.jar"]
+    environment:
+      SERVER_PORT: "8761"
+      JAVA_TOOL_OPTIONS: -Xms64m -Xmx384m -XX:+UseSerialGC
+    ports:
+      - "127.0.0.1:8761:8761"
+    restart: unless-stopped
+    networks: [scamusica]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8761/ || exit 1"]
+      interval: 10s
+      timeout: 8s
+      retries: 18
+      start_period: 75s
+
+  ms-categorias:
+    <<: *java
+    command: ["java", "-jar", "/app/ms-categorias.jar"]
+    environment:
+      <<: *java-db-env
+      SERVER_PORT: "8090"
+      DB_URL: jdbc:mysql://mysql:3306/db_categoria
+    depends_on: *java-depends
+
+  ms-auth:
+    <<: *java
+    command: ["java", "-jar", "/app/ms-auth.jar"]
+    environment:
+      <<: *java-db-env
+      SERVER_PORT: "8094"
+      DB_URL: jdbc:mysql://mysql:3306/db_usuario
+      COOKIE_SECURE: "false"
+      SEED_DEMO_USERS: "true"
+      LOCAL_DEMO_MODE: "true"
+      RESET_DEMO_PASSWORDS: ${RESET_DEMO_PASSWORDS:-false}
+      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:?Configura DEMO_ADMIN_PASSWORD en .env}
+      DEMO_VENDEDOR_PASSWORD: ${DEMO_VENDEDOR_PASSWORD:?Configura DEMO_VENDEDOR_PASSWORD en .env}
+      DEMO_CLIENTE_PASSWORD: ${DEMO_CLIENTE_PASSWORD:?Configura DEMO_CLIENTE_PASSWORD en .env}
+    depends_on: *java-depends
+
+  ms-catalogo:
+    <<: *java
+    command: ["java", "-jar", "/app/ms-catalogo.jar"]
+    environment:
+      <<: *java-db-env
+      SERVER_PORT: "8089"
+      DB_URL: jdbc:mysql://mysql:3306/db_catalogo
+    depends_on:
+      mysql: {condition: service_healthy}
+      eureka-server: {condition: service_healthy}
+      ms-categorias: {condition: service_healthy}
+
+  ms-carrito:
+    <<: *java
+    command: ["java", "-jar", "/app/ms-carrito.jar"]
+    environment:
+      <<: *java-db-env
+      SERVER_PORT: "8100"
+      DB_URL: jdbc:mysql://mysql:3306/db_carrito
+    depends_on: *java-depends
+
+  ms-pedido:
+    <<: *java
+    command: ["java", "-jar", "/app/ms-pedido.jar"]
+    environment:
+      <<: *java-db-env
+      SERVER_PORT: "8098"
+      DB_URL: jdbc:mysql://mysql:3306/db_pedido
+    depends_on:
+      mysql: {condition: service_healthy}
+      eureka-server: {condition: service_healthy}
+      ms-catalogo: {condition: service_healthy}
+
+  ms-notificacion:
+    <<: *java
+    command: ["java", "-jar", "/app/ms-notificacion.jar"]
+    environment:
+      <<: *java-db-env
+      SERVER_PORT: "8096"
+      DB_URL: jdbc:mysql://mysql:3306/db_notificacion
+    depends_on: *java-depends
+
+  ms-usuarios:
+    <<: *java
+    command: ["java", "-jar", "/app/ms-usuarios.jar"]
+    environment:
+      <<: *java-env
+      SERVER_PORT: "8093"
+    depends_on:
+      eureka-server: {condition: service_healthy}
+      ms-auth: {condition: service_healthy}
+
+  ms-boletas:
+    <<: *java
+    command: ["java", "-jar", "/app/ms-boletas.jar"]
+    environment:
+      <<: *java-env
+      SERVER_PORT: "8091"
+    depends_on:
+      eureka-server: {condition: service_healthy}
+      ms-pedido: {condition: service_healthy}
+
+  ms-inventario:
+    <<: *java
+    command: ["java", "-jar", "/app/ms-inventario.jar"]
+    environment:
+      <<: *java-env
+      SERVER_PORT: "8086"
+    depends_on:
+      eureka-server: {condition: service_healthy}
+      ms-catalogo: {condition: service_healthy}
+
+  ms-reportes:
+    <<: *java
+    command: ["java", "-jar", "/app/ms-reportes.jar"]
+    environment:
+      <<: *java-env
+      SERVER_PORT: "8095"
+    depends_on:
+      eureka-server: {condition: service_healthy}
+      ms-pedido: {condition: service_healthy}
+      ms-catalogo: {condition: service_healthy}
+      ms-auth: {condition: service_healthy}
+
+  api-gateway:
+    <<: *java
+    command: ["java", "-jar", "/app/api-gateway.jar"]
+    environment:
+      <<: *java-env
+      SERVER_PORT: "8080"
+      JAVA_TOOL_OPTIONS: -Xms64m -Xmx384m -XX:+UseSerialGC
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      eureka-server: {condition: service_healthy}
+      ms-auth: {condition: service_healthy}
+      ms-catalogo: {condition: service_healthy}
+      ms-categorias: {condition: service_healthy}
+      ms-carrito: {condition: service_healthy}
+      ms-pedido: {condition: service_healthy}
+      ms-notificacion: {condition: service_healthy}
+      ms-usuarios: {condition: service_healthy}
+      ms-boletas: {condition: service_healthy}
+      ms-inventario: {condition: service_healthy}
+      ms-reportes: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 8s
+      retries: 18
+      start_period: 90s
+
+  frontend:
+    build:
+      context: ./Tienda-SCAMusic-main
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ""
+    image: scamusica-frontend:local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5173:80"
+    networks: [scamusica]
+    depends_on:
+      api-gateway: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+networks:
+  scamusica:
+    driver: bridge
+
+volumes:
+  mysql_data:

@@ -1,0 +1,153 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowed-origin-patterns:
+              - "http://localhost:[*]"
+              - "http://127.0.0.1:[*]"
+            allowed-methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+            allowed-headers: ["*"]
+            allow-credentials: true
+      routes:
+        - id: tienda-auth-usuarios
+          uri: lb://ms-auth
+          predicates:
+            - Path=/api/v1/usuarios/**,/api/v1/auth/**
+        - id: tienda-admin-usuarios
+          uri: lb://ms-usuarios
+          predicates:
+            - Path=/api/v1/admin/usuarios/**
+        - id: tienda-productos
+          uri: lb://ms-catalogo
+          predicates:
+            - Path=/api/v1/productos/**
+        - id: tienda-categorias
+          uri: lb://ms-categorias
+          predicates:
+            - Path=/api/v1/categorias/**
+        - id: tienda-carrito
+          uri: lb://ms-carrito
+          predicates:
+            - Path=/api/v1/carritos/**
+        - id: tienda-pedidos
+          uri: lb://ms-pedido
+          predicates:
+            - Path=/api/v1/ordenes/**
+        - id: tienda-boletas
+          uri: lb://ms-boletas
+          predicates:
+            - Path=/api/v1/boletas/**
+        - id: tienda-contacto
+          uri: lb://ms-notificacion
+          predicates:
+            - Path=/api/v1/contactos/**
+        - id: tienda-inventario
+          uri: lb://ms-inventario
+          predicates:
+            - Path=/api/v1/inventario/**
+        - id: tienda-reportes
+          uri: lb://ms-reportes
+          predicates:
+            - Path=/api/v1/reportes/**
+        - id: swagger-ms-auth
+          uri: lb://ms-auth
+          predicates:
+            - Path=/v3/api-docs/ms-auth
+          filters:
+            - RewritePath=/v3/api-docs/ms-auth, /v3/api-docs
+        - id: swagger-ms-usuarios
+          uri: lb://ms-usuarios
+          predicates:
+            - Path=/v3/api-docs/ms-usuarios
+          filters:
+            - RewritePath=/v3/api-docs/ms-usuarios, /v3/api-docs
+        - id: swagger-ms-catalogo
+          uri: lb://ms-catalogo
+          predicates:
+            - Path=/v3/api-docs/ms-catalogo
+          filters:
+            - RewritePath=/v3/api-docs/ms-catalogo, /v3/api-docs
+        - id: swagger-ms-categorias
+          uri: lb://ms-categorias
+          predicates:
+            - Path=/v3/api-docs/ms-categorias
+          filters:
+            - RewritePath=/v3/api-docs/ms-categorias, /v3/api-docs
+        - id: swagger-ms-carrito
+          uri: lb://ms-carrito
+          predicates:
+            - Path=/v3/api-docs/ms-carrito
+          filters:
+            - RewritePath=/v3/api-docs/ms-carrito, /v3/api-docs
+        - id: swagger-ms-pedido
+          uri: lb://ms-pedido
+          predicates:
+            - Path=/v3/api-docs/ms-pedido
+          filters:
+            - RewritePath=/v3/api-docs/ms-pedido, /v3/api-docs
+        - id: swagger-ms-boletas
+          uri: lb://ms-boletas
+          predicates:
+            - Path=/v3/api-docs/ms-boletas
+          filters:
+            - RewritePath=/v3/api-docs/ms-boletas, /v3/api-docs
+        - id: swagger-ms-notificacion
+          uri: lb://ms-notificacion
+          predicates:
+            - Path=/v3/api-docs/ms-notificacion
+          filters:
+            - RewritePath=/v3/api-docs/ms-notificacion, /v3/api-docs
+        - id: swagger-ms-inventario
+          uri: lb://ms-inventario
+          predicates:
+            - Path=/v3/api-docs/ms-inventario
+          filters:
+            - RewritePath=/v3/api-docs/ms-inventario, /v3/api-docs
+        - id: swagger-ms-reportes
+          uri: lb://ms-reportes
+          predicates:
+            - Path=/v3/api-docs/ms-reportes
+          filters:
+            - RewritePath=/v3/api-docs/ms-reportes, /v3/api-docs
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    urls:
+      - name: ms-auth
+        url: /v3/api-docs/ms-auth
+      - name: ms-usuarios
+        url: /v3/api-docs/ms-usuarios
+      - name: ms-catalogo
+        url: /v3/api-docs/ms-catalogo
+      - name: ms-categorias
+        url: /v3/api-docs/ms-categorias
+      - name: ms-carrito
+        url: /v3/api-docs/ms-carrito
+      - name: ms-pedido
+        url: /v3/api-docs/ms-pedido
+      - name: ms-boletas
+        url: /v3/api-docs/ms-boletas
+      - name: ms-notificacion
+        url: /v3/api-docs/ms-notificacion
+      - name: ms-inventario
+        url: /v3/api-docs/ms-inventario
+      - name: ms-reportes
+        url: /v3/api-docs/ms-reportes
