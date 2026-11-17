@@ -100,6 +100,19 @@ services:
       DEMO_CLIENTE_PASSWORD: ${DEMO_CLIENTE_PASSWORD:?Configura DEMO_CLIENTE_PASSWORD en .env}
     depends_on: *java-depends
 
+  # Prepara permisos del volumen de portadas, también cuando ya fue creado por
+  # una versión anterior de SCAMusica. Termina antes de iniciar ms-catalogo.
+  preparar-portadas:
+    image: scamusica-backend:local
+    user: "0"
+    restart: "no"
+    command: ["/bin/sh", "-ec", "mkdir -p /app/uploads/productos && chown -R scamusica:scamusica /app/uploads/productos"]
+    volumes:
+      - catalogo_images:/app/uploads/productos
+    networks: [scamusica]
+    depends_on:
+      eureka-server: {condition: service_started}
+
   ms-catalogo:
     <<: *java
     command: ["java", "-jar", "/app/ms-catalogo.jar"]
@@ -114,6 +127,7 @@ services:
       mysql: {condition: service_healthy}
       eureka-server: {condition: service_healthy}
       ms-categorias: {condition: service_healthy}
+      preparar-portadas: {condition: service_completed_successfully}
 
   ms-carrito:
     <<: *java

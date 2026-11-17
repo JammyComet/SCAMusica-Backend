@@ -13,7 +13,9 @@ RUN mvn -B -ntp -Dmaven.test.skip=true package && \
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-RUN addgroup -S scamusica && adduser -S -G scamusica scamusica
+RUN addgroup -S scamusica && adduser -S -G scamusica scamusica && \
+    mkdir -p /app/uploads/productos && \
+    chown -R scamusica:scamusica /app/uploads
 COPY --from=build --chown=scamusica:scamusica /runtime/ /app/
 USER scamusica
 # La orden java -jar se define en docker-compose.yml para cada módulo.
