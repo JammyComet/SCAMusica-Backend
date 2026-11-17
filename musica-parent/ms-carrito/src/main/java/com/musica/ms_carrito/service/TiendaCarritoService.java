@@ -6,7 +6,9 @@ import com.musica.ms_carrito.model.CarritoItem;
 import com.musica.ms_carrito.repository.CarritoRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,9 +39,21 @@ public class TiendaCarritoService {
         Carrito c=repo.findByClienteId(-usuarioId).orElseGet(()->{
             var nuevo=new Carrito();nuevo.setClienteId(-usuarioId);nuevo.setItems(new ArrayList<>());return nuevo;
         });
-        c.getItems().clear();
-        for(TiendaCarritoItemDTO i:datos){
-            var item=new CarritoItem();item.setCarrito(c);item.setProductoId(i.productoId());item.setCantidad(i.cantidad());c.getItems().add(item);
+        // Reutilizar las filas existentes. Vaciar toda la colección e insertar
+        // de nuevo puede colisionar con uk_carrito_producto (carrito_id, producto_id)
+        // durante el flush de Hibernate al aumentar una cantidad.
+        Map<Long,CarritoItem> existentes = new HashMap<>();
+        for(CarritoItem item : c.getItems()) existentes.put(item.getProductoId(), item);
+        c.getItems().removeIf(item -> !identificadores.contains(item.getProductoId()));
+        for(TiendaCarritoItemDTO i : datos){
+            CarritoItem item = existentes.get(i.productoId());
+            if(item == null){
+                item = new CarritoItem();
+                item.setCarrito(c);
+                item.setProductoId(i.productoId());
+                c.getItems().add(item);
+            }
+            item.setCantidad(i.cantidad());
         }
         c.setFechaActualizacion(LocalDateTime.now());repo.save(c);
         return datos;
