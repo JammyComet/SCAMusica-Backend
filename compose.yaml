@@ -107,6 +107,9 @@ services:
       <<: *java-db-env
       SERVER_PORT: "8089"
       DB_URL: jdbc:mysql://mysql:3306/db_catalogo
+      PRODUCT_IMAGES_DIR: /app/uploads/productos
+    volumes:
+      - catalogo_images:/app/uploads/productos
     depends_on:
       mysql: {condition: service_healthy}
       eureka-server: {condition: service_healthy}
@@ -238,3 +241,4 @@ networks:
 
 volumes:
   mysql_data:
+  catalogo_images:

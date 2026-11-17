@@ -12,7 +12,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name="Productos SCAMusica",description="CRUD del catálogo de productos y descuentos en MySQL")
 public class TiendaCatalogoController {
     private final TiendaCatalogoService s;
-    public TiendaCatalogoController(TiendaCatalogoService s){this.s=s;}
+    private final com.musica.ms_catalogo.service.ImagenProductoService imagenes;
+    public TiendaCatalogoController(TiendaCatalogoService s,com.musica.ms_catalogo.service.ImagenProductoService imagenes){this.s=s;this.imagenes=imagenes;}
+    @PostMapping(value="/api/v1/productos/imagenes",consumes="multipart/form-data")
+    public Map<String,String> subirImagen(@RequestParam("archivo") org.springframework.web.multipart.MultipartFile archivo){return imagenes.subir(archivo);}
+    @GetMapping("/api/v1/productos/imagenes/{nombre:.+}")
+    public ResponseEntity<org.springframework.core.io.Resource> imagen(@PathVariable String nombre){return imagenes.obtener(nombre);}
     @GetMapping("/api/v1/productos") public List<Catalogo> listar(){return s.listar();}
     @GetMapping("/api/v1/productos/{codigo}") public Catalogo uno(@PathVariable String codigo){return s.porCodigo(codigo);}
     @PostMapping("/api/v1/productos") public ResponseEntity<Catalogo> crear(@RequestBody Catalogo p){return ResponseEntity.status(201).body(s.guardar(p,null));}

@@ -41,4 +41,4 @@ Accesos locales:
 
 `actualizar-claves-demo.ps1` permite restablecer las contraseñas de las cuentas de demostración **solo en el entorno local**. El JWT de acceso caduca a los 5 minutos y la sesión utiliza renovación mediante cookie HttpOnly.
 
-MySQL utiliza un volumen persistente. No ejecutes `docker compose down -v` si necesitas conservar los datos. Si reutilizas una base anterior, conserva su `.env` original.
+MySQL y las portadas subidas desde el administrador utilizan volúmenes persistentes independientes (`mysql_data` y `catalogo_images`). No ejecutes `docker compose down -v` si necesitas conservar los datos. Si reutilizas una base anterior, conserva su `.env` original.
