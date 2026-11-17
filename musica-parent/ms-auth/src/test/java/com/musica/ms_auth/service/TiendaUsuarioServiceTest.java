@@ -90,6 +90,28 @@ class TiendaUsuarioServiceTest {
         assertTrue(encoder.matches("actual-correcta",usuario.getPassword()));
         verify(repo,never()).save(any());
     }
+    @Test void perfilPermiteCambiarPasswordLegadoYNoConfundeRunInmutable() {
+        var repo=mock(UsuarioRepository.class);
+        var encoder=new BCryptPasswordEncoder();
+        var usuario=new Usuario();usuario.setId(24L);usuario.setUsername("cliente@gmail.com");
+        usuario.setPassword("clave-antigua123");usuario.setRol("CLIENTE");usuario.setActivo(true);
+        usuario.setRun("11111111");
+        when(repo.findById(24L)).thenReturn(java.util.Optional.of(usuario));
+        when(repo.save(usuario)).thenReturn(usuario);
+        var jwt=mock(JwtService.class);
+        var claims=mock(io.jsonwebtoken.Claims.class);
+        when(jwt.verificar("token-valido")).thenReturn(claims);
+        when(claims.get("usuarioId")).thenReturn(24L);
+        when(claims.getSubject()).thenReturn("cliente@gmail.com");
+        when(claims.get("rol")).thenReturn("CLIENTE");
+        var service=new TiendaUsuarioService(repo,encoder,jwt);
+        var dto=new TiendaUsuarioDTO();
+        dto.setRun("11111111");dto.setContrasenaActual("clave-antigua123");dto.setContrasena("clave-nueva123");
+        service.actualizar(24L,dto,true,"Bearer token-valido");
+        assertTrue(encoder.matches("clave-nueva123",usuario.getPassword()));
+        assertFalse(encoder.matches("clave-antigua123",usuario.getPassword()));
+        verify(repo,never()).existsByRun(anyString());
+    }
     @Test void perfilActualizaDatosSinCambiarPassword() {
         var repo=mock(UsuarioRepository.class);
         var encoder=new BCryptPasswordEncoder();

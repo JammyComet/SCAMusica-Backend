@@ -83,7 +83,7 @@ public class TiendaUsuarioService {
         boolean revocar = false;
         Usuario u=repo.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (propio && !u.getId().equals(desdeToken(header).getId())) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-        if (d.getRun()!=null && !d.getRun().equals(u.getRun()) && repo.existsByRun(d.getRun().trim())) throw new ResponseStatusException(HttpStatus.CONFLICT,"RUN duplicado");
+        if (!propio && d.getRun()!=null && !d.getRun().equals(u.getRun()) && repo.existsByRun(d.getRun().trim())) throw new ResponseStatusException(HttpStatus.CONFLICT,"RUN duplicado");
         if (!propio && d.getRol()!=null) {
             if (u.getUsername().equals("admin@duoc.cl") && !"ADMIN".equals(rol(d.getRol()))) throw new ResponseStatusException(HttpStatus.CONFLICT,"El administrador principal no puede cambiar de rol");
             String rolNuevo=rol(d.getRol());
@@ -97,7 +97,7 @@ public class TiendaUsuarioService {
         if (d.getContrasena()!=null && !d.getContrasena().isBlank()) {
             if(d.getContrasena().length()<8 || d.getContrasena().length()>72)
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"La nueva contraseña debe tener entre 8 y 72 caracteres");
-            if (propio && (d.getContrasenaActual()==null || !encoder.matches(d.getContrasenaActual(),u.getPassword()))) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Contraseña actual incorrecta");
+            if (propio && !verificarContrasenaActual(u,d.getContrasenaActual())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Contraseña actual incorrecta");
             u.setPassword(encoder.encode(d.getContrasena()));
             revocar=true;
         }
@@ -105,6 +105,14 @@ public class TiendaUsuarioService {
         TiendaUsuarioDTO resultado = dto(repo.save(u));
         if(revocar && sesiones!=null) sesiones.deleteByUsuarioId(id);
         return resultado;
+    }
+    private boolean verificarContrasenaActual(Usuario usuario, String actual) {
+        if (actual == null || usuario.getPassword() == null) return false;
+        String guardada = usuario.getPassword();
+        if (guardada.startsWith("$2a$") || guardada.startsWith("$2b$") || guardada.startsWith("$2y$"))
+            return encoder.matches(actual, guardada);
+        // Compatibilidad con contraseñas antiguas: siempre se sustituye por BCrypt al cambiarla.
+        return guardada.equals(actual);
     }
     private void asignar(Usuario u,TiendaUsuarioDTO d,boolean propio) {
         if (d.getRun()!=null && !propio) u.setRun(d.getRun());
