@@ -62,7 +62,7 @@ class TiendaUsuarioServiceTest {
         var repo=mock(UsuarioRepository.class);
         when(repo.save(any(Usuario.class))).thenAnswer(inv->{Usuario u=inv.getArgument(0);u.setId(9L);return u;});
         var service=new TiendaUsuarioService(repo,new BCryptPasswordEncoder(),new JwtService());
-        var dto=new TiendaUsuarioDTO();dto.setCorreo("nuevo@ejemplo.com");dto.setContrasena("clave123");dto.setRol("Administrador");
+        var dto=new TiendaUsuarioDTO();dto.setCorreo("nuevo@ejemplo.com");dto.setContrasena("clave123");dto.setRol("Administrador");dto.setFechaNacimiento(java.time.LocalDate.of(2000,1,1));
         var resultado=service.crear(dto,true);
         assertEquals("Cliente",resultado.getRol());
         var captor=org.mockito.ArgumentCaptor.forClass(Usuario.class);
@@ -153,5 +153,48 @@ class TiendaUsuarioServiceTest {
         assertTrue(encoder.matches("clave-nueva123",usuario.getPassword()));
         assertFalse(encoder.matches("clave-anterior",usuario.getPassword()));
         verify(sesiones).deleteByUsuarioId(23L);
+    }
+
+    @Test void registroYCreacionAdminRechazanMenoresDe18Anos() {
+        for (boolean publico : new boolean[]{true,false}) {
+            var repo=mock(UsuarioRepository.class);
+            var service=new TiendaUsuarioService(repo,new BCryptPasswordEncoder(),new JwtService());
+            var dto=new TiendaUsuarioDTO();
+            dto.setCorreo("menor@gmail.com");
+            dto.setContrasena("clave-segura123");
+            dto.setRol("Cliente");
+            dto.setFechaNacimiento(java.time.LocalDate.now(java.time.ZoneId.of("America/Santiago")).minusYears(18).plusDays(1));
+            var error=assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                ()->service.crear(dto,publico));
+            assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST,error.getStatusCode());
+            verify(repo,never()).save(any(Usuario.class));
+        }
+    }
+
+    @Test void fechaExactaDeCumpleanos18EsValida() {
+        var repo=mock(UsuarioRepository.class);
+        when(repo.save(any(Usuario.class))).thenAnswer(inv->{Usuario u=inv.getArgument(0);u.setId(100L);return u;});
+        var service=new TiendaUsuarioService(repo,new BCryptPasswordEncoder(),new JwtService());
+        var dto=new TiendaUsuarioDTO();dto.setCorreo("adulto@gmail.com");dto.setContrasena("clave-segura123");dto.setRol("Cliente");
+        var fechaLimite=java.time.LocalDate.now(java.time.ZoneId.of("America/Santiago")).minusYears(18);
+        dto.setFechaNacimiento(fechaLimite);
+        var creado=service.crear(dto,true);
+        assertEquals(fechaLimite,creado.getFechaNacimiento());
+        verify(repo).save(any(Usuario.class));
+    }
+
+    @Test void noSePuedeEditarFechaDeNacimientoParaHacerMenorDeEdad() {
+        var repo=mock(UsuarioRepository.class);
+        var usuario=new Usuario();usuario.setId(42L);usuario.setUsername("adulto@gmail.com");
+        usuario.setRol("CLIENTE");usuario.setFechaNacimiento(java.time.LocalDate.of(1990,1,1));
+        when(repo.findById(42L)).thenReturn(java.util.Optional.of(usuario));
+        var service=new TiendaUsuarioService(repo,new BCryptPasswordEncoder(),new JwtService());
+        var dto=new TiendaUsuarioDTO();
+        dto.setFechaNacimiento(java.time.LocalDate.now(java.time.ZoneId.of("America/Santiago")).minusYears(18).plusDays(1));
+        var error=assertThrows(org.springframework.web.server.ResponseStatusException.class,
+            ()->service.actualizar(42L,dto,false,null));
+        assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST,error.getStatusCode());
+        assertEquals(java.time.LocalDate.of(1990,1,1),usuario.getFechaNacimiento());
+        verify(repo,never()).save(any(Usuario.class));
     }
 }

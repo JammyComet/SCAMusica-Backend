@@ -6,6 +6,7 @@ import com.musica.ms_auth.repository.UsuarioRepository;
 import com.musica.ms_auth.repository.SesionRefreshRepository;
 import com.musica.ms_auth.security.JwtService;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import org.springframework.boot.CommandLineRunner;
@@ -67,8 +68,16 @@ public class TiendaUsuarioService {
     }
     public List<TiendaUsuarioDTO> listar() { return repo.findAll().stream().map(this::dto).toList(); }
     public TiendaUsuarioDTO uno(Long id) { return dto(repo.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND))); }
+    private static final ZoneId ZONA_TIENDA = ZoneId.of("America/Santiago");
+
+    private void validarMayorDeEdad(LocalDate fechaNacimiento) {
+        if (fechaNacimiento == null || fechaNacimiento.isAfter(LocalDate.now(ZONA_TIENDA).minusYears(18)))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes tener al menos 18 años");
+    }
+
     public TiendaUsuarioDTO crear(TiendaUsuarioDTO d, boolean publico) {
         if (d.getCorreo()==null || d.getContrasena()==null || d.getContrasena().length()<8 || d.getContrasena().length()>72) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Se requiere correo y contraseña de 8 a 72 caracteres");
+        validarMayorDeEdad(d.getFechaNacimiento());
         String correo=d.getCorreo().trim().toLowerCase();
         if(repo.existsByUsername(correo)) throw new ResponseStatusException(HttpStatus.CONFLICT,"Correo ya registrado");
         if(d.getRun()!=null && !d.getRun().isBlank() && repo.existsByRun(d.getRun().trim())) throw new ResponseStatusException(HttpStatus.CONFLICT,"RUN duplicado");
@@ -82,6 +91,7 @@ public class TiendaUsuarioService {
     public TiendaUsuarioDTO actualizar(Long id,TiendaUsuarioDTO d, boolean propio, String header) {
         boolean revocar = false;
         Usuario u=repo.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (d.getFechaNacimiento() != null) validarMayorDeEdad(d.getFechaNacimiento());
         if (propio && !u.getId().equals(desdeToken(header).getId())) throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         if (!propio && d.getRun()!=null && !d.getRun().equals(u.getRun()) && repo.existsByRun(d.getRun().trim())) throw new ResponseStatusException(HttpStatus.CONFLICT,"RUN duplicado");
         if (!propio && d.getRol()!=null) {
