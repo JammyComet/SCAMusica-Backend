@@ -49,4 +49,3 @@ MySQL y las portadas subidas desde el administrador utilizan volúmenes persiste
 
 Se mantienen seis servicios: `ms-auth` (usuarios y contacto), `ms-catalogo` (productos e inventario), `ms-categorias`, `ms-carrito`, `ms-pedido` (órdenes y boletas) y `ms-reportes`. Las rutas públicas de React se conservaron.
 
-Si antes ejecutabas la versión con 10 servicios, usa `docker compose up -d --build --remove-orphans`: los cuatro contenedores retirados se eliminan sin borrar los volúmenes ni las compras. Conserva el `.env` anterior.
