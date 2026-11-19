@@ -58,17 +58,32 @@ class TiendaUsuarioServiceTest {
         assertNull(dto.getContrasena());
         assertEquals("Cliente",dto.getRol());
     }
+    private TiendaUsuarioDTO datosValidos(String correo) {
+        var d=new TiendaUsuarioDTO(); d.setCorreo(correo); d.setContrasena("clave-segura123");
+        d.setRun("12345678"); d.setNombre("Ana"); d.setApellidos("Pérez");
+        d.setTelefono("912345678"); d.setFechaNacimiento(java.time.LocalDate.of(1990,1,1));
+        d.setRegion("Metropolitana de Santiago"); d.setComuna("Santiago");d.setDireccion("Calle 123");
+        d.setRol("Cliente");return d;
+    }
+    @Test void registroRechazaDatosIncompletosAunqueSeEnvienDirectamentePorLaApi() {
+        var repo=mock(UsuarioRepository.class);
+        var service=new TiendaUsuarioService(repo,new BCryptPasswordEncoder(),new JwtService());
+        var incompleto=new TiendaUsuarioDTO(); incompleto.setCorreo("nuevo@gmail.com");
+        incompleto.setContrasena("clave-segura123");incompleto.setFechaNacimiento(java.time.LocalDate.of(1990,1,1));
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,()->service.crear(incompleto,true));
+        verify(repo,never()).save(any());
+    }
     @Test void registroPublicoNuncaPermiteCrearAdministradores() {
         var repo=mock(UsuarioRepository.class);
         when(repo.save(any(Usuario.class))).thenAnswer(inv->{Usuario u=inv.getArgument(0);u.setId(9L);return u;});
         var service=new TiendaUsuarioService(repo,new BCryptPasswordEncoder(),new JwtService());
-        var dto=new TiendaUsuarioDTO();dto.setCorreo("nuevo@ejemplo.com");dto.setContrasena("clave123");dto.setRol("Administrador");dto.setFechaNacimiento(java.time.LocalDate.of(2000,1,1));
+        var dto=datosValidos("nuevo@gmail.com");dto.setRol("Administrador");
         var resultado=service.crear(dto,true);
         assertEquals("Cliente",resultado.getRol());
         var captor=org.mockito.ArgumentCaptor.forClass(Usuario.class);
         verify(repo).save(captor.capture());
         assertEquals("CLIENTE",captor.getValue().getRol());
-        assertNotEquals("clave123",captor.getValue().getPassword());
+        assertNotEquals("clave-segura123",captor.getValue().getPassword());
     }
 
     @Test void perfilRechazaContrasenaActualIncorrecta() {
@@ -159,10 +174,7 @@ class TiendaUsuarioServiceTest {
         for (boolean publico : new boolean[]{true,false}) {
             var repo=mock(UsuarioRepository.class);
             var service=new TiendaUsuarioService(repo,new BCryptPasswordEncoder(),new JwtService());
-            var dto=new TiendaUsuarioDTO();
-            dto.setCorreo("menor@gmail.com");
-            dto.setContrasena("clave-segura123");
-            dto.setRol("Cliente");
+            var dto=datosValidos("menor@gmail.com");
             dto.setFechaNacimiento(java.time.LocalDate.now(java.time.ZoneId.of("America/Santiago")).minusYears(18).plusDays(1));
             var error=assertThrows(org.springframework.web.server.ResponseStatusException.class,
                 ()->service.crear(dto,publico));
@@ -175,7 +187,7 @@ class TiendaUsuarioServiceTest {
         var repo=mock(UsuarioRepository.class);
         when(repo.save(any(Usuario.class))).thenAnswer(inv->{Usuario u=inv.getArgument(0);u.setId(100L);return u;});
         var service=new TiendaUsuarioService(repo,new BCryptPasswordEncoder(),new JwtService());
-        var dto=new TiendaUsuarioDTO();dto.setCorreo("adulto@gmail.com");dto.setContrasena("clave-segura123");dto.setRol("Cliente");
+        var dto=datosValidos("adulto@gmail.com");
         var fechaLimite=java.time.LocalDate.now(java.time.ZoneId.of("America/Santiago")).minusYears(18);
         dto.setFechaNacimiento(fechaLimite);
         var creado=service.crear(dto,true);

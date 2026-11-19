@@ -49,7 +49,7 @@ if (-not (Test-Path -LiteralPath $envFile)) {
 }
 
 Write-Host 'Construyendo e iniciando SCAMusica...' -ForegroundColor Cyan
-docker compose up --build -d
+docker compose up --build -d --remove-orphans
 if ($LASTEXITCODE -ne 0) { throw 'Docker Compose no pudo iniciar SCAMusica. Revisa docker compose logs.' }
 docker compose ps
 Write-Host ''

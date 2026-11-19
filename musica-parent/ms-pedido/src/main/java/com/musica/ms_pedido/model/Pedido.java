@@ -58,4 +58,7 @@ public class Pedido {
     private String clienteTelefono;
     private String entregaRegion;
     private String entregaComuna;
+    // Null para las compras antiguas. Única por cliente y solicitud para evitar pagos duplicados.
+    @Column(name="clave_solicitud",unique=true,length=100) private String claveSolicitud;
+    @Column(name="huella_solicitud",length=64) private String huellaSolicitud;
 }

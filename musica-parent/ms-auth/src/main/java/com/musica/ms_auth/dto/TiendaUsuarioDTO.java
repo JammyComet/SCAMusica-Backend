@@ -7,7 +7,9 @@ import lombok.Data;
 public class TiendaUsuarioDTO {
     private Long id;
     private String correo;
+    @io.swagger.v3.oas.annotations.media.Schema(accessMode=io.swagger.v3.oas.annotations.media.Schema.AccessMode.WRITE_ONLY)
     private String contrasena; // Escritura solamente: NUNCA devolver el hash al frontend.
+    @io.swagger.v3.oas.annotations.media.Schema(accessMode=io.swagger.v3.oas.annotations.media.Schema.AccessMode.WRITE_ONLY)
     private String contrasenaActual;
     private String rol;
     private String run;

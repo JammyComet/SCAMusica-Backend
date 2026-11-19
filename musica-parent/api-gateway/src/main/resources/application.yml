@@ -22,15 +22,11 @@ spring:
         - id: tienda-auth-usuarios
           uri: lb://ms-auth
           predicates:
-            - Path=/api/v1/usuarios/**,/api/v1/auth/**
-        - id: tienda-admin-usuarios
-          uri: lb://ms-usuarios
-          predicates:
-            - Path=/api/v1/admin/usuarios/**
+            - Path=/api/v1/usuarios/**,/api/v1/auth/**,/api/v1/admin/usuarios/**,/api/v1/contactos/**
         - id: tienda-productos
           uri: lb://ms-catalogo
           predicates:
-            - Path=/api/v1/productos/**
+            - Path=/api/v1/productos/**,/api/v1/inventario/**
         - id: tienda-categorias
           uri: lb://ms-categorias
           predicates:
@@ -42,19 +38,7 @@ spring:
         - id: tienda-pedidos
           uri: lb://ms-pedido
           predicates:
-            - Path=/api/v1/ordenes/**
-        - id: tienda-boletas
-          uri: lb://ms-boletas
-          predicates:
-            - Path=/api/v1/boletas/**
-        - id: tienda-contacto
-          uri: lb://ms-notificacion
-          predicates:
-            - Path=/api/v1/contactos/**
-        - id: tienda-inventario
-          uri: lb://ms-inventario
-          predicates:
-            - Path=/api/v1/inventario/**
+            - Path=/api/v1/ordenes/**,/api/v1/boletas/**
         - id: tienda-reportes
           uri: lb://ms-reportes
           predicates:
@@ -65,12 +49,6 @@ spring:
             - Path=/v3/api-docs/ms-auth
           filters:
             - RewritePath=/v3/api-docs/ms-auth, /v3/api-docs
-        - id: swagger-ms-usuarios
-          uri: lb://ms-usuarios
-          predicates:
-            - Path=/v3/api-docs/ms-usuarios
-          filters:
-            - RewritePath=/v3/api-docs/ms-usuarios, /v3/api-docs
         - id: swagger-ms-catalogo
           uri: lb://ms-catalogo
           predicates:
@@ -95,24 +73,6 @@ spring:
             - Path=/v3/api-docs/ms-pedido
           filters:
             - RewritePath=/v3/api-docs/ms-pedido, /v3/api-docs
-        - id: swagger-ms-boletas
-          uri: lb://ms-boletas
-          predicates:
-            - Path=/v3/api-docs/ms-boletas
-          filters:
-            - RewritePath=/v3/api-docs/ms-boletas, /v3/api-docs
-        - id: swagger-ms-notificacion
-          uri: lb://ms-notificacion
-          predicates:
-            - Path=/v3/api-docs/ms-notificacion
-          filters:
-            - RewritePath=/v3/api-docs/ms-notificacion, /v3/api-docs
-        - id: swagger-ms-inventario
-          uri: lb://ms-inventario
-          predicates:
-            - Path=/v3/api-docs/ms-inventario
-          filters:
-            - RewritePath=/v3/api-docs/ms-inventario, /v3/api-docs
         - id: swagger-ms-reportes
           uri: lb://ms-reportes
           predicates:
@@ -133,8 +93,6 @@ springdoc:
     urls:
       - name: ms-auth
         url: /v3/api-docs/ms-auth
-      - name: ms-usuarios
-        url: /v3/api-docs/ms-usuarios
       - name: ms-catalogo
         url: /v3/api-docs/ms-catalogo
       - name: ms-categorias
@@ -143,11 +101,5 @@ springdoc:
         url: /v3/api-docs/ms-carrito
       - name: ms-pedido
         url: /v3/api-docs/ms-pedido
-      - name: ms-boletas
-        url: /v3/api-docs/ms-boletas
-      - name: ms-notificacion
-        url: /v3/api-docs/ms-notificacion
-      - name: ms-inventario
-        url: /v3/api-docs/ms-inventario
       - name: ms-reportes
         url: /v3/api-docs/ms-reportes

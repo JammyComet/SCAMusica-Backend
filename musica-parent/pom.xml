@@ -28,12 +28,8 @@
         <module>ms-auth</module>
         <module>ms-catalogo</module>
         <module>ms-carrito</module>
-        <module>ms-notificacion</module>
         <module>ms-pedido</module>
-        <module>ms-usuarios</module>
         <module>ms-categorias</module>
-        <module>ms-boletas</module>
-        <module>ms-inventario</module>
         <module>ms-reportes</module>
     </modules>
 

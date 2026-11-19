@@ -1,4 +1,4 @@
-# SCAMusica — React + 10 microservicios + Gateway + Eureka + MySQL.
+# SCAMusica — React + 6 microservicios + Gateway + Eureka + MySQL.
 # Ejecutar desde esta carpeta, con .env generado por iniciar.ps1:
 #   docker compose up --build -d
 name: scamusica
@@ -150,45 +150,6 @@ services:
       eureka-server: {condition: service_healthy}
       ms-catalogo: {condition: service_healthy}
 
-  ms-notificacion:
-    <<: *java
-    command: ["java", "-jar", "/app/ms-notificacion.jar"]
-    environment:
-      <<: *java-db-env
-      SERVER_PORT: "8096"
-      DB_URL: jdbc:mysql://mysql:3306/db_notificacion
-    depends_on: *java-depends
-
-  ms-usuarios:
-    <<: *java
-    command: ["java", "-jar", "/app/ms-usuarios.jar"]
-    environment:
-      <<: *java-env
-      SERVER_PORT: "8093"
-    depends_on:
-      eureka-server: {condition: service_healthy}
-      ms-auth: {condition: service_healthy}
-
-  ms-boletas:
-    <<: *java
-    command: ["java", "-jar", "/app/ms-boletas.jar"]
-    environment:
-      <<: *java-env
-      SERVER_PORT: "8091"
-    depends_on:
-      eureka-server: {condition: service_healthy}
-      ms-pedido: {condition: service_healthy}
-
-  ms-inventario:
-    <<: *java
-    command: ["java", "-jar", "/app/ms-inventario.jar"]
-    environment:
-      <<: *java-env
-      SERVER_PORT: "8086"
-    depends_on:
-      eureka-server: {condition: service_healthy}
-      ms-catalogo: {condition: service_healthy}
-
   ms-reportes:
     <<: *java
     command: ["java", "-jar", "/app/ms-reportes.jar"]
@@ -217,10 +178,6 @@ services:
       ms-categorias: {condition: service_healthy}
       ms-carrito: {condition: service_healthy}
       ms-pedido: {condition: service_healthy}
-      ms-notificacion: {condition: service_healthy}
-      ms-usuarios: {condition: service_healthy}
-      ms-boletas: {condition: service_healthy}
-      ms-inventario: {condition: service_healthy}
       ms-reportes: {condition: service_healthy}
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health || exit 1"]

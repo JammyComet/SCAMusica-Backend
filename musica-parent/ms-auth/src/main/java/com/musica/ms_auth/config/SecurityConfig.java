@@ -26,9 +26,10 @@ public class SecurityConfig {
             .httpBasic(basic->basic.disable()).formLogin(form->form.disable())
             .authorizeHttpRequests(a->a
             .requestMatchers("/api/v1/auth/login","/api/v1/auth/refresh","/api/v1/auth/logout","/api/v1/usuarios/registro","/v3/api-docs/**","/swagger-ui/**","/doc/**","/actuator/health").permitAll()
+            .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/contactos").permitAll()
+            .requestMatchers("/api/v1/admin/usuarios", "/api/v1/admin/usuarios/**").hasRole("ADMIN")
             .requestMatchers("/api/v1/usuarios/me").authenticated()
-            .requestMatchers("/api/v1/usuarios/**").hasRole("ADMIN")
-            .anyRequest().denyAll())
+                        .anyRequest().denyAll())
             .addFilterBefore(new OncePerRequestFilter() {
                 @Override protected void doFilterInternal(HttpServletRequest req,HttpServletResponse res,FilterChain chain) throws ServletException,IOException {
                     String h=req.getHeader("Authorization");

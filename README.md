@@ -4,7 +4,7 @@ Backend de la tienda SCAMusica desarrollado en Java 21, Spring Boot 3.4.5 y Mave
 
 ## Estructura
 
-- `musica-parent/`: 10 microservicios de negocio, API Gateway y Eureka Server.
+- `musica-parent/`: 6 microservicios de negocio, API Gateway y Eureka Server.
 - `compose.yaml`: orquestación de los servicios, MySQL y frontend.
 - `docker/mysql/`: inicialización de permisos de MySQL.
 - `musica-parent/docs/bd-general.sql`: definición de bases de datos.
@@ -39,6 +39,14 @@ Accesos locales:
 .\detener.ps1
 ```
 
+La imagen Docker del backend ejecuta `mvn verify` para compilar **y correr JUnit**: si falla una prueba, Docker detiene el build. Las compras usan una clave idempotente y conciliación de pedidos pendientes para recuperar cortes entre el stock y la orden.
+
 `actualizar-claves-demo.ps1` permite restablecer las contraseñas de las cuentas de demostración **solo en el entorno local**. El JWT de acceso caduca a los 5 minutos y la sesión utiliza renovación mediante cookie HttpOnly.
 
 MySQL y las portadas subidas desde el administrador utilizan volúmenes persistentes independientes (`mysql_data` y `catalogo_images`). No ejecutes `docker compose down -v` si necesitas conservar los datos. Si reutilizas una base anterior, conserva su `.env` original.
+
+## Servicios de negocio
+
+Se mantienen seis servicios: `ms-auth` (usuarios y contacto), `ms-catalogo` (productos e inventario), `ms-categorias`, `ms-carrito`, `ms-pedido` (órdenes y boletas) y `ms-reportes`. Las rutas públicas de React se conservaron.
+
+Si antes ejecutabas la versión con 10 servicios, usa `docker compose up -d --build --remove-orphans`: los cuatro contenedores retirados se eliminan sin borrar los volúmenes ni las compras. Conserva el `.env` anterior.

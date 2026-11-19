@@ -75,8 +75,30 @@ public class TiendaUsuarioService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes tener al menos 18 años");
     }
 
+    private static boolean nombreValido(String nombre, int max) {
+        return nombre!=null && !nombre.isBlank() && nombre.trim().length()<=max &&
+            nombre.trim().matches("[A-Za-zÁÉÍÓÚáéíóúÑñÜü\\s]+");
+    }
+    private void validarRegistro(TiendaUsuarioDTO d, boolean publico) {
+        if(d==null || d.getCorreo()==null || d.getContrasena()==null ||
+           d.getContrasena().length()<8 || d.getContrasena().length()>72)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Se requiere correo y contraseña de 8 a 72 caracteres");
+        String correo=d.getCorreo().trim().toLowerCase(java.util.Locale.ROOT);
+        if(correo.length()>100 || !correo.matches("[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}") ||
+           !(correo.endsWith("@gmail.com") || correo.endsWith("@duoc.cl") || correo.endsWith("@profesor.duoc.cl")))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Correo inválido");
+        if(d.getRun()==null || !d.getRun().trim().matches("[0-9]{7,9}") ||
+           !nombreValido(d.getNombre(),50) || !nombreValido(d.getApellidos(),100) ||
+           d.getTelefono()==null || !d.getTelefono().trim().matches("9[0-9]{8}"))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Revisa RUN, nombre, apellidos y teléfono");
+        boolean cliente=publico || "CLIENTE".equals(rol(d.getRol()));
+        if(cliente && (d.getRegion()==null || d.getRegion().isBlank() ||
+           d.getComuna()==null || d.getComuna().isBlank() ||
+           d.getDireccion()==null || d.getDireccion().isBlank() || d.getDireccion().trim().length()>300))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Completa la dirección de compra");
+    }
     public TiendaUsuarioDTO crear(TiendaUsuarioDTO d, boolean publico) {
-        if (d.getCorreo()==null || d.getContrasena()==null || d.getContrasena().length()<8 || d.getContrasena().length()>72) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Se requiere correo y contraseña de 8 a 72 caracteres");
+        validarRegistro(d, publico);
         validarMayorDeEdad(d.getFechaNacimiento());
         String correo=d.getCorreo().trim().toLowerCase();
         if(repo.existsByUsername(correo)) throw new ResponseStatusException(HttpStatus.CONFLICT,"Correo ya registrado");

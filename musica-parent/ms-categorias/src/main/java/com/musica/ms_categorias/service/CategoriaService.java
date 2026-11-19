@@ -45,13 +45,16 @@ public class CategoriaService {
    if(c==null||c.getNombre()==null||c.getNombre().isBlank())throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Nombre obligatorio");
    return c.getNombre().trim();
  }
- @Bean public CommandLineRunner cargarIniciales(ObjectMapper objectMapper){return args->{
-    // Los datos de ejemplo se cargan solo en una BD nueva: al reiniciar no se revierten
-    // los nombres modificados ni reaparecen las categorías eliminadas.
-    if(repository.count()>0)return;
-    List<Categoria> categorias=objectMapper.readValue(new ClassPathResource("tienda-categorias.json").getInputStream(),new TypeReference<List<Categoria>>(){});
-    for(Categoria c:categorias)if(!repository.existsByNombreIgnoreCase(c.getNombre())){
-       Categoria nuevo=new Categoria();nuevo.setNombre(c.getNombre());repository.save(nuevo);
+ @Bean public CommandLineRunner cargarIniciales(ObjectMapper objectMapper,org.springframework.jdbc.core.JdbcTemplate jdbc){return args->{
+    jdbc.execute("CREATE TABLE IF NOT EXISTS scamusica_seed_control (nombre VARCHAR(80) PRIMARY KEY)");
+    Integer yaSembrado=jdbc.queryForObject("SELECT COUNT(*) FROM scamusica_seed_control WHERE nombre='categorias_demo'",Integer.class);
+    if(yaSembrado!=null && yaSembrado>0)return;
+    if(repository.count()==0){
+       List<Categoria> categorias=objectMapper.readValue(new ClassPathResource("tienda-categorias.json").getInputStream(),new TypeReference<List<Categoria>>(){});
+       for(Categoria c:categorias)if(!repository.existsByNombreIgnoreCase(c.getNombre())){
+          Categoria nuevo=new Categoria();nuevo.setNombre(c.getNombre());repository.save(nuevo);
+       }
     }
+    jdbc.update("INSERT IGNORE INTO scamusica_seed_control (nombre) VALUES ('categorias_demo')");
  };}
 }

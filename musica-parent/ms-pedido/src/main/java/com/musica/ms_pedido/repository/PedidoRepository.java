@@ -20,4 +20,13 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
 
     @EntityGraph(attributePaths = "detalles")
     List<Pedido> findByClienteIdOrderByIdDesc(Long clienteId);
+
+    @EntityGraph(attributePaths = "detalles")
+    Optional<Pedido> findByClaveSolicitud(String claveSolicitud);
+
+    List<Pedido> findByEstadoAndClaveSolicitudIsNotNull(String estado);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select p from Pedido p where p.id = :id")
+    Optional<Pedido> bloquearPorId(@org.springframework.data.repository.query.Param("id") Long id);
 }
