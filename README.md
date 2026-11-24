@@ -1,51 +1,76 @@
-# SCAMusica — Backend
+# SCAMusica — Backend y Docker
 
-Backend de la tienda SCAMusica desarrollado en Java 21, Spring Boot 3.4.5 y Maven multimódulo.
+Backend desarrollado con **Java 21, Spring Boot y MySQL**. La ejecución completa del proyecto se realiza mediante Docker Compose.
 
-## Estructura
+## Requisitos
 
-- `musica-parent/`: 6 microservicios de negocio, API Gateway y Eureka Server.
-- `compose.yaml`: orquestación de los servicios, MySQL y frontend.
-- `docker/mysql/`: inicialización de permisos de MySQL.
-- `musica-parent/docs/bd-general.sql`: definición de bases de datos.
-- `musica-parent/docs/endpoints.md`: rutas REST y permisos.
+- Docker Desktop iniciado (con Docker Compose).
+- PowerShell en Windows.
+- La carpeta `Tienda-SCAMusic-main` debe estar junto a `musica-parent`, dentro de `SCAMusica-Backend`.
 
-## Ejecución con Docker
+## Levantar el proyecto
 
-Requisito: Docker Desktop en ejecución, con Docker Compose disponible.
-
-El frontend es un repositorio independiente y debe estar clonado en `Tienda-SCAMusic-main/`, directamente dentro de esta carpeta, porque `compose.yaml` usa esa ruta como contexto de compilación.
-
-En PowerShell, desde la raíz de este repositorio:
+Abre PowerShell en la carpeta **`SCAMusica-Backend`** y ejecuta:
 
 ```powershell
 .\iniciar.ps1
-docker compose ps
 ```
 
-En la primera ejecución, `iniciar.ps1` crea un `.env` local con secretos de infraestructura. En ejecuciones posteriores conserva el archivo existente. No publiques `.env` ni las credenciales que contiene. `.env.example` solo documenta las variables requeridas.
+Este script crea el archivo `.env` si no existe, construye las imágenes y levanta frontend, backend y MySQL. En los siguientes arranques conserva el `.env` existente.
 
-Accesos locales:
-
-- Tienda: http://localhost:5173
-- API Gateway y Swagger: http://localhost:8080/swagger-ui.html
-- Eureka: http://localhost:8761
-- MySQL (acceso local): localhost:3307
-
-## Pruebas y mantenimiento
+También puedes ejecutar manualmente:
 
 ```powershell
-.\verificar-scamusica.ps1
-.\detener.ps1
+docker compose up -d --build --remove-orphans
 ```
 
-La imagen Docker del backend ejecuta `mvn verify` para compilar **y correr JUnit**: si falla una prueba, Docker detiene el build. Las compras usan una clave idempotente y conciliación de pedidos pendientes para recuperar cortes entre el stock y la orden.
+**Importante:** el comando manual necesita que el `.env` ya esté configurado; la primera vez utiliza `iniciar.ps1`.
 
-`actualizar-claves-demo.ps1` permite restablecer las contraseñas de las cuentas de demostración **solo en el entorno local**. El JWT de acceso caduca a los 5 minutos y la sesión utiliza renovación mediante cookie HttpOnly.
+## Direcciones locales
 
-MySQL y las portadas subidas desde el administrador utilizan volúmenes persistentes independientes (`mysql_data` y `catalogo_images`). No ejecutes `docker compose down -v` si necesitas conservar los datos. Si reutilizas una base anterior, conserva su `.env` original.
+| Servicio | Dirección |
+|---|---|
+| Tienda React | http://localhost:5173 |
+| Swagger / API Gateway | http://localhost:8080/swagger-ui.html |
+| Eureka Server | http://localhost:8761 |
+| MySQL (desde Windows) | `localhost:3307` |
 
-## Servicios de negocio
+Las **cuentas de prueba** y los **comandos de pruebas del frontend** están en `Tienda-SCAMusic-main/README.md`.
 
-Se mantienen seis servicios: `ms-auth` (usuarios y contacto), `ms-catalogo` (productos e inventario), `ms-categorias`, `ms-carrito`, `ms-pedido` (órdenes y boletas) y `ms-reportes`. Las rutas públicas de React se conservaron.
+## Comandos útiles
 
+Desde la carpeta raíz:
+
+```powershell
+docker compose ps                  # Ver estado de los contenedores
+docker compose logs --tail=100     # Revisar errores
+docker compose restart             # Reiniciar servicios
+.\detener.ps1                      # Detener conservando los datos
+```
+
+Si necesitas restablecer las claves demo locales a `scamusica123`:
+
+```powershell
+.\actualizar-claves-demo.ps1
+```
+
+Este último comando modifica las contraseñas demo y cierra sus sesiones anteriores.
+
+## Pruebas del backend
+
+Desde `musica-parent`, con **Java 21 y Maven** instalados:
+
+```powershell
+mvn verify
+```
+
+También se ejecutan las pruebas JUnit durante la construcción Docker del backend (`mvn verify` en su Dockerfile).
+
+## Organización básica
+
+- `musica-parent/`: `ms-auth`, `ms-catalogo`, `ms-categorias`, `ms-carrito`, `ms-pedido` y `ms-reportes`, además de API Gateway y Eureka.
+- `compose.yaml`: configuración de los contenedores.
+- `musica-parent/Dockerfile`: construcción del backend.
+- `Tienda-SCAMusic-main/Dockerfile`: construcción del frontend.
+
+**No compartas `.env`**: contiene claves privadas. Los datos de MySQL y las imágenes se conservan en volúmenes Docker. **No uses `docker compose down -v`** si deseas conservarlos.
